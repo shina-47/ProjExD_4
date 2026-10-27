@@ -242,6 +242,31 @@ class Score:
         screen.blit(self.image, self.rect)
 
 
+class Gravity(pg.sprite.Sprite):
+    """
+    画面全体を覆う重力場に関するクラス
+    """
+    def __init__(self, life: int):
+        """
+        画面全体を覆う半透明の黒い矩形Surfaceを生成する
+        引数 life：発動時間
+        """
+        super().__init__()
+        self.image = pg.Surface((WIDTH, HEIGHT))
+        pg.draw.rect(self.image, (0, 0, 0), (0, 0, WIDTH, HEIGHT))
+        self.image.set_alpha(128)
+        self.rect = self.image.get_rect()
+        self.life = life
+
+    def update(self):
+        """
+        発動時間を1減算し，0未満になったら重力場を消す
+        """
+        self.life -= 1
+        if self.life < 0:
+            self.kill()
+
+
 def main():
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -253,6 +278,7 @@ def main():
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
+    gras = pg.sprite.Group()
 
     tmr = 0
     clock = pg.time.Clock()
@@ -263,6 +289,10 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
+            if event.type == pg.KEYDOWN and event.key == pg.K_RETURN:
+                if score.value > 200:  # 重力場：スコア200消費
+                    gras.add(Gravity(400))
+                    score.value -= 200
         screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
@@ -282,6 +312,11 @@ def main():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.value += 1  # 1点アップ
 
+        for emy in pg.sprite.groupcollide(emys, gras, True, False).keys():  # 重力場の範囲内の敵機リスト
+            exps.add(Explosion(emy, 100))  # 爆発エフェクト
+        for bomb in pg.sprite.groupcollide(bombs, gras, True, False).keys():  # 重力場の範囲内の爆弾リスト
+            exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+
         for bomb in pg.sprite.spritecollide(bird, bombs, True):  # こうかとんと衝突した爆弾リスト
             bird.change_img(8, screen)  # こうかとん悲しみエフェクト
             score.update(screen)
@@ -298,6 +333,8 @@ def main():
         bombs.draw(screen)
         exps.update()
         exps.draw(screen)
+        gras.update()
+        gras.draw(screen)
         score.update(screen)
         pg.display.update()
         tmr += 1
