@@ -242,6 +242,34 @@ class Score:
         screen.blit(self.image, self.rect)
 
 
+class Life:
+    """
+    こうかとんの残機数をハートで表示するクラス
+    """
+    def __init__(self, num: int):
+        """
+        ハートのSurfaceを生成する
+        引数 num：初期残機数
+        """
+        self.num = num
+        self.image = pg.Surface((40, 40))
+        points = [(16*math.sin(t/100)**3 + 20,
+                   -(13*math.cos(t/100) - 5*math.cos(2*t/100) - 2*math.cos(3*t/100) - math.cos(4*t/100)) + 20
+                   ) for t in range(0, 628)]
+        pg.draw.polygon(self.image, (255, 0, 0), points)
+        self.image.set_colorkey((0, 0, 0))
+
+    def update(self, screen: pg.Surface):
+        """
+        残機数の分だけハートを画面右下に並べて表示する
+        引数 screen：画面Surface
+        """
+        for i in range(self.num):
+            rect = self.image.get_rect()
+            rect.center = WIDTH - 50 - 50*i, HEIGHT - 50  # 最右ハートの中心が右から50，下から50
+            screen.blit(self.image, rect)
+
+
 def main():
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -253,6 +281,7 @@ def main():
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
+    life = Life(3)  # 初期残機数
 
     tmr = 0
     clock = pg.time.Clock()
@@ -283,8 +312,13 @@ def main():
             score.value += 1  # 1点アップ
 
         for bomb in pg.sprite.spritecollide(bird, bombs, True):  # こうかとんと衝突した爆弾リスト
+            life.num -= 1  # 残機数を1減らす
+            if life.num > 0:
+                bird.change_img(8, screen)  # こうかとん悲しみエフェクト
+                continue
             bird.change_img(8, screen)  # こうかとん悲しみエフェクト
             score.update(screen)
+            life.update(screen)
             pg.display.update()
             time.sleep(2)
             return
@@ -299,6 +333,7 @@ def main():
         exps.update()
         exps.draw(screen)
         score.update(screen)
+        life.update(screen)
         pg.display.update()
         tmr += 1
         clock.tick(50)
